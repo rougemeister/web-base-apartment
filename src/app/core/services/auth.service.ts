@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
-import { AuthResponse } from '../models/model';
-import { User } from '../models/model';
+import { AuthResponse, User } from '../models/model';
+import { decodeToken, DecodedToken } from '../utils/jwt.util';
+import { JwtInterceptor } from '../interceptors/jwt.interceptor';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -29,6 +30,28 @@ export class AuthService {
 
   getToken(): string | null {
     return localStorage.getItem(this.TOKEN_KEY);
+  }
+
+  /** ✅ Checks if a user is logged in */
+  isLoggedIn(): boolean {
+    const token = this.getToken();
+    if (!token) return false;
+
+    const decoded: DecodedToken | null = decodeToken(token);
+    if (!decoded) return false;
+
+    // Check if token expired
+    const now = Date.now().valueOf() / 1000;
+    return decoded.exp > now;
+  }
+
+  /** ✅ Get logged in user role */
+  getUserRole(): 'tenant' | 'landlord' | 'admin' | null {
+    const token = this.getToken();
+    if (!token) return null;
+    const decoded = decodeToken(token);
+    console.log('Decoded token:', decoded?.role);
+    return decoded?.role ?? null;
   }
 
   private storeAuth(res: AuthResponse): void {
